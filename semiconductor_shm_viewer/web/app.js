@@ -270,6 +270,7 @@ async function loadEquipment(name) {
 }
 
 let wasmModule = null;
+let introStep = 0; // 0: Problem&Solve 표시 전, 1: Guide 표시 전, 2: 인트로 완료
 
 document.querySelectorAll('.tab').forEach((button) => {
   button.addEventListener('click', () => {
@@ -308,6 +309,7 @@ document.querySelectorAll('.tab').forEach((button) => {
 ViewerModule().then((mod) => {
   wasmModule = mod;
   loadEquipment(state.current);
+  introStep = 1;
   openModal('help');
 });
 
@@ -500,18 +502,20 @@ document.getElementById('sliderPrev').addEventListener('click', () => goToSlide(
 document.getElementById('sliderNext').addEventListener('click', () => goToSlide(slideIndex + 1));
 
 
-modalClose.addEventListener('click', () => {
+function closeModal() {
   modalOverlay.hidden = true;
-});
+  if (introStep === 1) {
+    introStep = 2;
+    openModal('guide');
+  }
+}
+
+modalClose.addEventListener('click', closeModal);
 
 modalOverlay.addEventListener('click', (event) => {
-  if (event.target === modalOverlay) {
-    modalOverlay.hidden = true;
-  }
+  if (event.target === modalOverlay) closeModal();
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    modalOverlay.hidden = true;
-  }
+  if (event.key === 'Escape') closeModal();
 });
