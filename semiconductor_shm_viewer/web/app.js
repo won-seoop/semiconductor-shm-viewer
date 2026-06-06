@@ -43,6 +43,15 @@ const state = {
   sortDirection: 'asc'
 };
 
+const testSnapshot = {
+  loaded: false,
+  fields: [],
+  originalRows: [],
+  rows: [],
+  sortField: null,
+  sortDirection: 'asc'
+};
+
 function parseCsv(text) {
   return text.trim().split(/\r?\n/).map((line) => line.split(','));
 }
@@ -266,6 +275,32 @@ async function loadEquipment(name) {
 
 document.querySelectorAll('.tab').forEach((button) => {
   button.addEventListener('click', () => {
+    if (button.dataset.equipment === 'test') {
+      document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
+      button.classList.add('active');
+      document.getElementById('equipmentTitle').textContent = 'TEST';
+      const status = document.getElementById('status');
+      status.classList.remove('error');
+      if (testSnapshot.loaded) {
+        state.fields = testSnapshot.fields;
+        state.originalRows = testSnapshot.originalRows;
+        state.rows = testSnapshot.rows;
+        state.sortField = testSnapshot.sortField;
+        state.sortDirection = testSnapshot.sortDirection;
+        renderDashboard();
+        renderTable();
+        renderSummary();
+        status.textContent = '불러오기 완료';
+      } else {
+        status.textContent = 'CSV를 업로드해 주세요';
+        document.getElementById('dashboard').innerHTML = '';
+        document.getElementById('tableHead').innerHTML = '';
+        document.getElementById('tableBody').innerHTML = '';
+        document.getElementById('recordSize').textContent = '-';
+        document.getElementById('rowCount').textContent = '-';
+      }
+      return;
+    }
     document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
     button.classList.add('active');
     loadEquipment(button.dataset.equipment);
@@ -274,6 +309,125 @@ document.querySelectorAll('.tab').forEach((button) => {
 
 loadEquipment(state.current);
 
+const VALID_TYPES = new Set(['UINT8', 'UINT16', 'UINT32', 'INT8', 'INT16', 'INT32', 'FLOAT', 'DOUBLE', 'CHAR_ARRAY']);
+
+function validateCsvFormat(metaText, dataText) {
+  const errors = [];
+
+  const metaRows = parseCsv(metaText);
+  const dataRows = parseCsv(dataText);
+
+  // --- 메타데이터 검증 ---
+  const metaHeader = metaRows[0].map((c) => c.trim().toLowerCase());
+  const metaHeaderOk = metaHeader[0] === 'name' && metaHeader[1] === 'type' && metaHeader[2] === 'size';
+  const metaRowsOk = metaRows.length >= 2 && metaRows.slice(1).every((row) => {
+    if (row.length < 3) return false;
+    const [name, type, sizeStr] = row.map((c) => c.trim());
+    return name && VALID_TYPES.has(type) && Number.isInteger(Number(sizeStr)) && Number(sizeStr) > 0;
+  });
+
+  if (!metaHeaderOk || !metaRowsOk) {
+    errors.push('메타데이터의 포맷이 맞지 않습니다. (형식: name,type,size / type은 UINT8·UINT16 등)');
+  }
+
+  // --- 데이터 검증 ---
+  const metaFields = metaRows.slice(1).map((row) => row[0].trim());
+  const dataHeader = dataRows[0].map((c) => c.trim());
+  const dataOk = dataRows.length >= 2
+    && dataHeader.length === metaFields.length
+    && metaFields.every((name) => dataHeader.includes(name));
+
+  if (!dataOk) {
+    errors.push('데이터의 포맷이 맞지 않습니다. (열 이름이 메타데이터와 일치해야 합니다)');
+  }
+
+  return errors;
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('파일 읽기 실패'));
+    reader.readAsText(file);
+  });
+}
+
+const uploadMeta = document.getElementById('uploadMeta');
+const uploadData = document.getElementById('uploadData');
+const uploadApply = document.getElementById('uploadApply');
+const uploadErrors = document.getElementById('uploadErrors');
+
+function showUploadErrors(errors) {
+  if (errors.length === 0) {
+    uploadErrors.hidden = true;
+    return;
+  }
+  uploadErrors.innerHTML = `<strong>포맷 오류 ${errors.length}건</strong><ul>${errors.map((e) => `<li>${e}</li>`).join('')}</ul>`;
+  uploadErrors.hidden = false;
+}
+
+uploadApply.addEventListener('click', async () => {
+  const metaFile = uploadMeta.files[0];
+  const dataFile = uploadData.files[0];
+
+  if (!metaFile || !dataFile) {
+    alert('메타데이터와 데이터 CSV를 모두 선택해 주세요.');
+    return;
+  }
+
+  const status = document.getElementById('status');
+  uploadApply.disabled = true;
+  status.textContent = '불러오는 중';
+  status.classList.remove('error');
+
+  try {
+    const [metaText, dataText] = await Promise.all([
+      readFileAsText(metaFile),
+      readFileAsText(dataFile)
+    ]);
+
+    const errors = validateCsvFormat(metaText, dataText);
+    if (errors.length > 0) {
+      showUploadErrors(errors);
+      status.textContent = '포맷 오류';
+      status.classList.add('error');
+      return;
+    }
+    showUploadErrors([]);
+
+    state.sortField = null;
+    state.sortDirection = 'asc';
+
+    document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
+    document.querySelector('.tab[data-equipment="test"]').classList.add('active');
+    document.getElementById('equipmentTitle').textContent = 'TEST';
+
+    state.fields = parseMetadata(parseCsv(metaText));
+    state.originalRows = parseData(parseCsv(dataText));
+    state.rows = [...state.originalRows];
+
+    renderDashboard();
+    renderTable();
+    renderSummary();
+
+    testSnapshot.loaded = true;
+    testSnapshot.fields = state.fields;
+    testSnapshot.originalRows = state.originalRows;
+    testSnapshot.rows = [...state.rows];
+    testSnapshot.sortField = state.sortField;
+    testSnapshot.sortDirection = state.sortDirection;
+
+    status.textContent = '불러오기 완료';
+  } catch (error) {
+    console.error('[uploadApply]', error);
+    status.textContent = '파일을 불러오지 못했습니다';
+    status.classList.add('error');
+  } finally {
+    uploadApply.disabled = false;
+  }
+});
+
 const helpBtn = document.getElementById('helpBtn');
 const modalOverlay = document.getElementById('modalOverlay');
 const modalClose = document.getElementById('modalClose');
@@ -281,10 +435,25 @@ const sliderImg = document.getElementById('sliderImg');
 const modalTitle = document.getElementById('modalTitle');
 const sliderDots = document.querySelectorAll('.slider-dot');
 
-const slides = [
-  { src: 'problem.png', label: 'Problem' },
-  { src: 'solve.png',   label: 'Solve'   }
-];
+const slideSets = {
+  help: [
+    { src: 'process/problem.png', label: 'Problem' },
+    { src: 'process/solve.png',   label: 'Solve'   }
+  ],
+  guide: [
+    { src: 'guide/1.png', label: 'Guide 1' },
+    { src: 'guide/2.png', label: 'Guide 2' },
+    { src: 'guide/3.png', label: 'Guide 3' },
+    { src: 'guide/4.png', label: 'Guide 4' },
+    { src: 'guide/5.png', label: 'Guide 5' }
+  ],
+  csv: [
+    { src: 'metadate_format.png', label: '메타데이터 포맷' },
+    { src: 'data_format.png',     label: '데이터 포맷'     }
+  ]
+};
+
+let slides = slideSets.help;
 let slideIndex = 0;
 
 function goToSlide(index) {
@@ -299,11 +468,16 @@ function goToSlide(index) {
   sliderDots.forEach((dot, i) => dot.classList.toggle('active', i === slideIndex));
 }
 
-helpBtn.addEventListener('click', () => {
+function openModal(setKey) {
+  slides = slideSets[setKey];
   slideIndex = 0;
   goToSlide(0);
   modalOverlay.hidden = false;
-});
+}
+
+helpBtn.addEventListener('click', () => openModal('help'));
+document.getElementById('guideBtn').addEventListener('click', () => openModal('guide'));
+document.getElementById('csvHelpBtn').addEventListener('click', () => openModal('csv'));
 
 document.getElementById('sliderPrev').addEventListener('click', () => goToSlide(slideIndex - 1));
 document.getElementById('sliderNext').addEventListener('click', () => goToSlide(slideIndex + 1));

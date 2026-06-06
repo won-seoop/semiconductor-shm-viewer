@@ -21,6 +21,7 @@
         <button class="tab active" data-equipment="etch">ETCH</button>
         <button class="tab" data-equipment="photo">PHOTO</button>
         <button class="tab" data-equipment="transfer">TRANSFER</button>
+        <button class="tab tab-test" data-equipment="test">TEST</button>
       </nav>
 
       <section class="summary">
@@ -29,9 +30,27 @@
         <span class="summary-label">데이터 수</span>
         <strong id="rowCount">-</strong>
       </section>
-      <div class="help-btn-wrap">
-        <button class="help-btn" id="helpBtn" aria-label="도움말">?</button>
+      <div class="modal-btns">
+        <button class="modal-open-btn" id="helpBtn">Problem &amp; Solve</button>
+        <button class="modal-open-btn" id="guideBtn">Guide</button>
       </div>
+
+      <section class="upload-section">
+        <div class="upload-title-row">
+          <p class="upload-title">CSV 직접 업로드</p>
+          <button class="help-btn help-btn-sm" id="csvHelpBtn" aria-label="CSV 포맷 도움말">?</button>
+        </div>
+        <label class="upload-label">
+          <span>메타데이터</span>
+          <input type="file" id="uploadMeta" accept=".csv">
+        </label>
+        <label class="upload-label">
+          <span>데이터</span>
+          <input type="file" id="uploadData" accept=".csv">
+        </label>
+        <button class="upload-btn" id="uploadApply">적용</button>
+        <div class="upload-errors" id="uploadErrors" hidden></div>
+      </section>
     </aside>
 
     <div class="modal-overlay" id="modalOverlay" hidden>
