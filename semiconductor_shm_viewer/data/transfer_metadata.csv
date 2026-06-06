@@ -1,0 +1,7 @@
+name,type,size
+robotName,CHAR_ARRAY,8
+axisNo,UINT8,1
+motorRpm,DOUBLE,8
+carrierId,CHAR_ARRAY,10
+errorCount,INT32,4
+equipmentId,UINT16,2

@@ -1,0 +1,7 @@
+name,type,size
+equipmentId,UINT16,2
+chuckTemp,DOUBLE,8
+processPressure,FLOAT,4
+recipeName,CHAR_ARRAY,12
+lotId,CHAR_ARRAY,12
+alarmCode,UINT8,1

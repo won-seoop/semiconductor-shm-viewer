@@ -1,0 +1,7 @@
+name,type,size
+lotId,CHAR_ARRAY,12
+waferCount,UINT32,4
+exposureDose,DOUBLE,8
+focusOffset,INT16,2
+maskName,CHAR_ARRAY,10
+equipmentId,UINT16,2

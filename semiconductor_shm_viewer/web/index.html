@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>반도체 설비 출력 뷰어</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="mark">설비</div>
+        <div>
+          <h1>반도체 설비 출력 뷰어</h1>
+          <p>설비에서 나온 값을 한눈에 확인</p>
+        </div>
+      </div>
+
+      <nav class="equipment-tabs" aria-label="설비 선택">
+        <button class="tab active" data-equipment="etch">ETCH</button>
+        <button class="tab" data-equipment="photo">PHOTO</button>
+        <button class="tab" data-equipment="transfer">TRANSFER</button>
+      </nav>
+
+      <section class="summary">
+        <span class="summary-label">레코드 크기</span>
+        <strong id="recordSize">-</strong>
+        <span class="summary-label">데이터 수</span>
+        <strong id="rowCount">-</strong>
+      </section>
+      <div class="help-btn-wrap">
+        <button class="help-btn" id="helpBtn" aria-label="도움말">?</button>
+      </div>
+    </aside>
+
+    <div class="modal-overlay" id="modalOverlay" hidden>
+      <div class="modal-box">
+        <button class="modal-close" id="modalClose" aria-label="닫기">&times;</button>
+        <h4 class="modal-title" id="modalTitle">Problem</h4>
+        <div class="modal-slider">
+          <button class="slider-btn" id="sliderPrev">&#8249;</button>
+          <img class="slider-img" id="sliderImg" src="problem.png" alt="Problem">
+          <button class="slider-btn" id="sliderNext">&#8250;</button>
+        </div>
+        <div class="slider-dots">
+          <span class="slider-dot active" data-index="0"></span>
+          <span class="slider-dot" data-index="1"></span>
+        </div>
+      </div>
+    </div>
+
+    <section class="workspace">
+      <header class="toolbar">
+        <div>
+          <p class="eyebrow">현재 설비</p>
+          <h2 id="equipmentTitle">ETCH</h2>
+        </div>
+        <div class="status" id="status">불러오는 중</div>
+      </header>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h3>설비 대시보드</h3>
+          <span>주요 지표 추이</span>
+        </div>
+        <div class="dashboard" id="dashboard"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h3>설비 출력 목록</h3>
+          <span>설비에서 나온 값</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
