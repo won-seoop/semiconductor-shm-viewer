@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40">
+  <!-- S -->
+  <text x="4" y="30" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="28" fill="#ffffff" letter-spacing="1">SEMES</text>
+  <!-- Underline accent -->
+  <rect x="4" y="34" width="112" height="2.5" rx="1.2" fill="rgba(255,255,255,0.45)"/>
+</svg>
