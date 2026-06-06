@@ -308,6 +308,7 @@ document.querySelectorAll('.tab').forEach((button) => {
 ViewerModule().then((mod) => {
   wasmModule = mod;
   loadEquipment(state.current);
+  openModal('help');
 });
 
 const VALID_TYPES = new Set(['UINT8', 'UINT16', 'UINT32', 'INT8', 'INT16', 'INT32', 'FLOAT', 'DOUBLE', 'CHAR_ARRAY']);
@@ -505,6 +506,12 @@ modalClose.addEventListener('click', () => {
 
 modalOverlay.addEventListener('click', (event) => {
   if (event.target === modalOverlay) {
+    modalOverlay.hidden = true;
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
     modalOverlay.hidden = true;
   }
 });
