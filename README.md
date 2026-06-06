@@ -2,6 +2,10 @@
 
 설비 공유 메모리 데이터를 메타데이터 기반으로 파싱하여 웹 브라우저에서 시각화하는 프로젝트입니다.
 
+### 미리보기
+<img width="2560" height="1586" alt="image" src="https://github.com/user-attachments/assets/e9b825f8-8c35-4d02-8d1c-6a9499e5094b" />
+
+
 ---
 
 ## 문제 상황
