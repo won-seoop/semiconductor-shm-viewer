@@ -294,11 +294,24 @@ tbody tr:hover {
   line-height: 1;
 }
 
-.help-btn-sm {
-  width: 18px;
-  height: 18px;
-  font-size: 11px;
+.csv-help-btn {
   flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.6;
+  transition: background 0.15s, color 0.15s;
+}
+
+.csv-help-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 .upload-label {

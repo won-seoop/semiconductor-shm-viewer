@@ -56,36 +56,32 @@ function parseCsv(text) {
   return text.trim().split(/\r?\n/).map((line) => line.split(','));
 }
 
-async function loadCsv(path) {
+async function fetchText(path) {
   const response = await fetch(path);
 
   if (!response.ok) {
-    throw new Error(`CSV load failed: ${path}`);
+    throw new Error(`fetch failed: ${path}`);
   }
 
-  return parseCsv(await response.text());
+  return response.text();
 }
 
-function parseMetadata(rows) {
-  return rows.slice(1).map(([name, type, size]) => ({
-    name,
-    type,
-    size: Number(size)
-  }));
+function cppParseMetadata(metaText) {
+  return JSON.parse(wasmModule.ccall('parseMetadataCsv', 'string', ['string'], [metaText]));
 }
 
-function parseData(rows) {
-  const headers = rows[0];
+function cppParseData(metaText, dataText) {
+  return JSON.parse(wasmModule.ccall('parseDataCsv', 'string', ['string', 'string'], [metaText, dataText]));
+}
 
-  return rows.slice(1).map((values) => {
-    const row = {};
-
-    headers.forEach((header, index) => {
-      row[header] = values[index] ?? '';
-    });
-
-    return row;
-  });
+// shm_parser 로직: 원시 바이너리 버퍼를 메타데이터 기반 포인터 파싱으로 읽기
+function cppParseShmBuffer(arrayBuffer, metaText) {
+  const bytes = new Uint8Array(arrayBuffer);
+  const ptr = wasmModule._malloc(bytes.length);
+  wasmModule.HEAPU8.set(bytes, ptr);
+  const json = wasmModule.ccall('parseShmBuffer', 'string', ['number', 'number', 'string'], [ptr, bytes.length, metaText]);
+  wasmModule._free(ptr);
+  return JSON.parse(json);
 }
 
 function formatValue(field, value) {
@@ -252,13 +248,13 @@ async function loadEquipment(name) {
   status.classList.remove('error');
 
   try {
-    const [metadataRows, dataRows] = await Promise.all([
-      loadCsv(config.metadata),
-      loadCsv(config.data)
+    const [metaText, dataText] = await Promise.all([
+      fetchText(config.metadata),
+      fetchText(config.data)
     ]);
 
-    state.fields = parseMetadata(metadataRows);
-    state.originalRows = parseData(dataRows);
+    state.fields = cppParseMetadata(metaText);
+    state.originalRows = cppParseData(metaText, dataText);
     state.rows = [...state.originalRows];
 
     renderDashboard();
@@ -272,6 +268,8 @@ async function loadEquipment(name) {
     status.classList.add('error');
   }
 }
+
+let wasmModule = null;
 
 document.querySelectorAll('.tab').forEach((button) => {
   button.addEventListener('click', () => {
@@ -307,7 +305,10 @@ document.querySelectorAll('.tab').forEach((button) => {
   });
 });
 
-loadEquipment(state.current);
+ViewerModule().then((mod) => {
+  wasmModule = mod;
+  loadEquipment(state.current);
+});
 
 const VALID_TYPES = new Set(['UINT8', 'UINT16', 'UINT32', 'INT8', 'INT16', 'INT32', 'FLOAT', 'DOUBLE', 'CHAR_ARRAY']);
 
@@ -403,8 +404,8 @@ uploadApply.addEventListener('click', async () => {
     document.querySelector('.tab[data-equipment="test"]').classList.add('active');
     document.getElementById('equipmentTitle').textContent = 'TEST';
 
-    state.fields = parseMetadata(parseCsv(metaText));
-    state.originalRows = parseData(parseCsv(dataText));
+    state.fields = cppParseMetadata(metaText);
+    state.originalRows = cppParseData(metaText, dataText);
     state.rows = [...state.originalRows];
 
     renderDashboard();
@@ -433,12 +434,13 @@ const modalOverlay = document.getElementById('modalOverlay');
 const modalClose = document.getElementById('modalClose');
 const sliderImg = document.getElementById('sliderImg');
 const modalTitle = document.getElementById('modalTitle');
-const sliderDots = document.querySelectorAll('.slider-dot');
 
 const slideSets = {
   help: [
-    { src: 'process/problem.png', label: 'Problem' },
-    { src: 'process/solve.png',   label: 'Solve'   }
+    { src: 'process/problem.png',                   label: 'Problem' },
+    { src: 'process/solve.png',                     label: 'Solve' },
+    { src: 'process/common_data_parsing_logic.png', label: 'Common Data Parsing Logic' },
+    { src: 'process/shared_memory_read_logic.png',  label: 'Shared Memory Read Logic' }
   ],
   guide: [
     { src: 'guide/1.png', label: 'Guide 1' },
@@ -456,6 +458,17 @@ const slideSets = {
 let slides = slideSets.help;
 let slideIndex = 0;
 
+const sliderDotsContainer = document.getElementById('sliderDots');
+
+function buildDots() {
+  sliderDotsContainer.innerHTML = slides.map((_, i) =>
+    `<span class="slider-dot${i === 0 ? ' active' : ''}" data-index="${i}"></span>`
+  ).join('');
+  sliderDotsContainer.querySelectorAll('.slider-dot').forEach((dot) => {
+    dot.addEventListener('click', () => goToSlide(Number(dot.dataset.index)));
+  });
+}
+
 function goToSlide(index) {
   slideIndex = (index + slides.length) % slides.length;
   sliderImg.style.opacity = '0';
@@ -465,12 +478,15 @@ function goToSlide(index) {
     modalTitle.textContent = slides[slideIndex].label;
     sliderImg.style.opacity = '1';
   }, 150);
-  sliderDots.forEach((dot, i) => dot.classList.toggle('active', i === slideIndex));
+  sliderDotsContainer.querySelectorAll('.slider-dot').forEach((dot, i) =>
+    dot.classList.toggle('active', i === slideIndex)
+  );
 }
 
 function openModal(setKey) {
   slides = slideSets[setKey];
   slideIndex = 0;
+  buildDots();
   goToSlide(0);
   modalOverlay.hidden = false;
 }
@@ -482,9 +498,6 @@ document.getElementById('csvHelpBtn').addEventListener('click', () => openModal(
 document.getElementById('sliderPrev').addEventListener('click', () => goToSlide(slideIndex - 1));
 document.getElementById('sliderNext').addEventListener('click', () => goToSlide(slideIndex + 1));
 
-sliderDots.forEach((dot) => {
-  dot.addEventListener('click', () => goToSlide(Number(dot.dataset.index)));
-});
 
 modalClose.addEventListener('click', () => {
   modalOverlay.hidden = true;

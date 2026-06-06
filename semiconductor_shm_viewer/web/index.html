@@ -38,7 +38,7 @@
       <section class="upload-section">
         <div class="upload-title-row">
           <p class="upload-title">CSV 직접 업로드</p>
-          <button class="help-btn help-btn-sm" id="csvHelpBtn" aria-label="CSV 포맷 도움말">?</button>
+          <button class="csv-help-btn" id="csvHelpBtn" aria-label="CSV 포맷 도움말">?</button>
         </div>
         <label class="upload-label">
           <span>메타데이터</span>
@@ -62,10 +62,7 @@
           <img class="slider-img" id="sliderImg" src="problem.png" alt="Problem">
           <button class="slider-btn" id="sliderNext">&#8250;</button>
         </div>
-        <div class="slider-dots">
-          <span class="slider-dot active" data-index="0"></span>
-          <span class="slider-dot" data-index="1"></span>
-        </div>
+        <div class="slider-dots" id="sliderDots"></div>
       </div>
     </div>
 
@@ -102,6 +99,7 @@
     </section>
   </main>
 
+  <script src="viewer.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
